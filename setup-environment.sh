@@ -110,4 +110,3 @@ fi
 ## $CI_JOB needs to be set in knative upstream job configurations
 
 chmod +x /tmp/adjust.sh
-. /tmp/adjust.sh
