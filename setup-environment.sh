@@ -20,8 +20,6 @@ then
 fi
 
 while IFS= read -r line; do
-    echo "$line"
-    ls /opt/cluster
     scp ${SSH_ARGS} /root/.docker/config.json root@${line}:/var/lib/kubelet/config.json
 done < "$1"
 
@@ -111,7 +109,5 @@ fi
 ## Introducing CI_JOB var which can be used to fetch adjust script based on repo-tag
 ## $CI_JOB needs to be set in knative upstream job configurations
 
-cd ..
-
 chmod +x /tmp/adjust.sh
-. /tmp/adjust.sh 
+. /tmp/adjust.sh
