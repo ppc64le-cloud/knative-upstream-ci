@@ -4,7 +4,7 @@
 
 #--- Common Functions ---
 
-SSH_ARGS="-i /root/.ssh/ssh-key -o MACs=hmac-sha2-256 -o StrictHostKeyChecking=no -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null"
+SSH_ARGS="-i /etc/secret-volume/ssh-key -o MACs=hmac-sha2-256 -o StrictHostKeyChecking=no -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null"
 
 # Check if the Hosts file is provided as an argument
 if [ -z "$1" ]; then
@@ -20,7 +20,7 @@ then
 fi
 
 while IFS= read -r line; do
-    scp ${SSH_ARGS} /root/.docker/config.json root@${line}:/var/lib/kubelet/config.json
+    scp ${SSH_ARGS} /etc/secret-volume/config.json root@${line}:/var/lib/kubelet/config.json
 done < "$1"
 
 create_registry_secrets_in_serving(){
