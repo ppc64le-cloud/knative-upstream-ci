@@ -2,9 +2,7 @@
 
 # This script sets up the k8s environment and updates the knative source for running the tests succesfully.
 
-#--- Common Functions ---
-
-SSH_ARGS="-i /etc/secret-volume/ssh-key -o MACs=hmac-sha2-256 -o StrictHostKeyChecking=no -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null"
+SSH_ARGS="-i /root/.ssh/ssh-key -o MACs=hmac-sha2-256 -o StrictHostKeyChecking=no -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null"
 
 # Check if the Hosts file is provided as an argument
 if [ -z "$1" ]; then
@@ -20,11 +18,17 @@ then
 fi
 
 while IFS= read -r line; do
-    scp ${SSH_ARGS} /etc/secret-volume/config.json root@${line}:/var/lib/kubelet/config.json
+    # Copy the config file to the remote server
+    scp ${SSH_ARGS} /root/.docker/config.json root@${line}:/var/lib/kubelet/config.json
+    
+    # Restart kubelet service and exit immediately after
+    ssh -n ${SSH_ARGS} root@${line} "timeout 10 systemctl restart kubelet; exit" || {
+        echo "Failed to restart kubelet on ${line}"
+        continue
+    }
 done < "$1"
 
 create_registry_secrets_in_serving(){
-    kubectl create ns knative-serving
     kubectl -n knative-serving create secret generic registry-creds --from-file=config.json=/tmp/config.json
     kubectl -n knative-serving create secret generic registry-certs --from-file=ssl.crt=/tmp/ssl.crt
 }
@@ -33,28 +37,25 @@ install_contour(){
     # TODO: remove yq dependency
     wget https://github.com/mikefarah/yq/releases/download/v4.25.3/yq_linux_amd64 -P /tmp
     chmod +x /tmp/yq_linux_amd64
-
-    echo "Contour is being installed..."
-
-    envoy_replacement=icr.io/upstream-k8s-registry/knative/maistra/envoy:v2.4
     ISTIO_RELEASE=knative-v1.13.1
-
-     # install istio-crds
+    echo "Contour is being installed..."
+    local envoy_replacement="icr.io/upstream-k8s-registry/knative/maistra/envoy:v2.4"
+    local contour_replacement="icr.io/upstream-k8s-registry/knative/contour:v1.29.1"
+    # install istio-crds
     curl --connect-timeout 10 --retry 5 -sL https://github.com/knative-sandbox/net-istio/releases/download/${ISTIO_RELEASE}/istio.yaml | \
     /tmp/yq_linux_amd64 '. | select(.kind == "CustomResourceDefinition"), select(.kind == "Namespace")' | kubectl apply -f -
-
     # install contour
-    curl --connect-timeout 10 --retry 5 -sL https://raw.githubusercontent.com/knative/serving/release-1.1/third_party/contour-latest/contour.yaml | \
-    sed 's!\(image: \).*docker.io.*!\1'$envoy_replacement'!g' | kubectl apply -f -
+    curl --connect-timeout 10 --retry 5 -sL https://raw.githubusercontent.com/knative/serving/main/third_party/contour-latest/contour.yaml | \
+    sed 's!\(image: \).*docker.io.*!\1'$envoy_replacement'!g' | sed 's!\(image: \).*ghcr.io.*!\1'$contour_replacement'!g' | kubectl apply -f -
     kubectl apply -f https://raw.githubusercontent.com/knative/serving/main/third_party/contour-latest/net-contour.yaml
     echo "Waiting until all pods under contour-external are ready..."
-    kubectl wait --timeout=5m pod --for=condition=Ready -n contour-external -l '!job-name'
+    kubectl wait --timeout=15m pod --for=condition=Ready -n contour-external -l '!job-name'
 }
 
 #------------------------
 
 echo "Setting up access to k8s cluster...."
-
+kubectl create ns knative-serving
 curl --connect-timeout 10 --retry 5 -sL https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml | sed '/.*--metric-resolution.*/a\        - --kubelet-insecure-tls' | kubectl apply -f -
 
 # TODO: merge with patching conditional code below?
@@ -104,9 +105,5 @@ then
 else
     cp adjust/${KNATIVE_COMPONENT}/${RELEASE}/* /tmp/
 fi
-
-## Fetch & run adjust.sh script to patch the source code with image replacements and other fixes
-## Introducing CI_JOB var which can be used to fetch adjust script based on repo-tag
-## $CI_JOB needs to be set in knative upstream job configurations
 
 chmod +x /tmp/adjust.sh
