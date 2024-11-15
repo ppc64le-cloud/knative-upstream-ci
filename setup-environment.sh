@@ -29,7 +29,10 @@ while IFS= read -r line; do
 done < "$1"
 
 create_registry_secrets_in_serving(){
-    kubectl -n knative-serving create secret generic registry-creds --from-file=config.json=/tmp/config.json
+    kubectl -n knative-serving create secret generic registry-creds --from-file=config.json=/root/.docker/config.json
+
+    openssl req -x509 -newkey rsa:2048 -keyout /tmp/ssl.key -out /tmp/ssl.crt -days 365 -nodes -subj "/CN=localhost"
+
     kubectl -n knative-serving create secret generic registry-certs --from-file=ssl.crt=/tmp/ssl.crt
 }
 
