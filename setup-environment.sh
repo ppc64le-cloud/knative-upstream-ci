@@ -30,10 +30,7 @@ done < "$1"
 
 create_registry_secrets_in_serving(){
     kubectl -n knative-serving create secret generic registry-creds --from-file=config.json=/root/.docker/config.json
-
-    openssl req -x509 -newkey rsa:2048 -keyout /tmp/ssl.key -out /tmp/ssl.crt -days 365 -nodes -subj "/CN=localhost"
-    export SSL_CERT_FILE=/tmp/ssl.crt
-    kubectl -n knative-serving create secret generic registry-certs --from-file=ssl.crt=/tmp/ssl.crt
+    kubectl -n knative-serving create secret generic registry-certs --from-file=ssl.crt=/etc/ssl/certs/ca-certificates.crt
 }
 
 install_contour(){
