@@ -12,7 +12,7 @@ spec:
       volumes:
       - name: registry-creds
         secret:
-          secretName: registry-creds # pragma: allowlist secret
+          secretName: registry-creds
       - name: registry-certs
         secret:
-          secretName: registry-certs # pragma: allowlist secret
+          secretName: registry-certs
