@@ -12,4 +12,3 @@ This directory contains list of images which don't have power support and are us
 |`ghcr.io/kedacore/keda-admission-webhooks:2.10.1`|`icr.io/upstream-k8s-registry/knative/keda-webhook:v2.11.2`|`eventing-kafka-broker`|
 |`ghcr.io/kedacore/keda-metrics-apiserver:2.10.1`|`icr.io/upstream-k8s-registry/knative/keda-adapter:v2.11.2`|`eventing-kafka-broker`|
 |`ghcr.io/kedacore/keda:2.10.1`|`icr.io/upstream-k8s-registry/knative/keda-main:v2.11.2`|`eventing-kafka-broker`|
-|`ghcr.io/kedacore/keda:2.10.1`|`icr.io/upstream-k8s-registry/knative/keda-main:v2.11.2`|`eventing-kafka-broker`|
